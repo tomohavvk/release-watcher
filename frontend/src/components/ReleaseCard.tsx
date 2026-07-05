@@ -41,7 +41,14 @@ export default function ReleaseCard({ release }: Props) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-white">{release.repo_name}</span>
+            <a
+              href={`https://github.com/${release.repo_name}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-white hover:text-blue-300 transition-colors"
+            >
+              {release.repo_name}
+            </a>
             <span
               className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                 isRelease

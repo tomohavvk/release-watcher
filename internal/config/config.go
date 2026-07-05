@@ -11,17 +11,19 @@ type Config struct {
 	Port          string
 	DBPath        string
 	GithubToken   string
+	TelegramToken string
 	PollInterval  time.Duration
 	LogLevel      string
 }
 
 func Load() *Config {
 	cfg := &Config{
-		Port:         getEnv("PORT", "8080"),
-		DBPath:       getEnv("DB_PATH", "./data/release-watcher.db"),
-		GithubToken:  getEnv("GITHUB_TOKEN", ""),
-		PollInterval: getDurationEnv("POLL_INTERVAL_SECONDS", 300),
-		LogLevel:     getEnv("LOG_LEVEL", "info"),
+		Port:          getEnv("PORT", "8080"),
+		DBPath:        getEnv("DB_PATH", "./data/release-watcher.db"),
+		GithubToken:   getEnv("GITHUB_TOKEN", ""),
+		TelegramToken: getEnv("TELEGRAM_BOT_TOKEN", ""),
+		PollInterval:  getDurationEnv("POLL_INTERVAL_SECONDS", 300),
+		LogLevel:      getEnv("LOG_LEVEL", "info"),
 	}
 
 	if cfg.GithubToken == "" {

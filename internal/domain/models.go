@@ -3,9 +3,10 @@ package domain
 import "time"
 
 type User struct {
-	ID        int64     `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
+	ID             int64     `json:"id"`
+	Name           string    `json:"name"`
+	TelegramChatID *int64    `json:"telegram_chat_id,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type Organization struct {

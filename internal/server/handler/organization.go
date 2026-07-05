@@ -6,17 +6,18 @@ import (
 	"strconv"
 
 	"github.com/shadowy-pycoder/release-watcher/internal/domain"
+	"github.com/shadowy-pycoder/release-watcher/internal/poller"
 	"github.com/shadowy-pycoder/release-watcher/internal/repository"
 	"github.com/shadowy-pycoder/release-watcher/internal/server/response"
 )
 
-func RegisterOrganization(mux *http.ServeMux, repos *repository.All) {
-	mux.HandleFunc("POST /api/v1/following", handleFollow(repos))
+func RegisterOrganization(mux *http.ServeMux, repos *repository.All, p *poller.Poller) {
+	mux.HandleFunc("POST /api/v1/following", handleFollow(repos, p))
 	mux.HandleFunc("DELETE /api/v1/following/{orgId}", handleUnfollow(repos))
 	mux.HandleFunc("GET /api/v1/following", handleListFollowing(repos))
 }
 
-func handleFollow(repos *repository.All) http.HandlerFunc {
+func handleFollow(repos *repository.All, p *poller.Poller) http.HandlerFunc {
 	type request struct {
 		UserID  int64  `json:"user_id"`
 		OrgName string `json:"org_name"`
@@ -44,6 +45,8 @@ func handleFollow(repos *repository.All) http.HandlerFunc {
 			response.Error(w, http.StatusInternalServerError, "failed to follow organization")
 			return
 		}
+
+		p.Trigger()
 
 		response.Created(w, org)
 	}

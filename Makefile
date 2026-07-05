@@ -1,3 +1,8 @@
+ifneq (,$(wildcard ./.env))
+    include .env
+    export
+endif
+
 .PHONY: build build-go frontend run dev clean test vet tidy
 
 BINARY=./tmp/release-watcher
@@ -10,10 +15,10 @@ build-go:
 frontend:
 	cd frontend && npm install && npm run build
 
-build:
+run: build
 	$(BINARY)
 
-run:
+dev:
 	air
 
 clean:

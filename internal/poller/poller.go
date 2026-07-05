@@ -3,6 +3,7 @@ package poller
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/shadowy-pycoder/release-watcher/internal/domain"
@@ -14,6 +15,8 @@ type Poller struct {
 	repos    *repository.All
 	github   *gh.Client
 	interval time.Duration
+	trigger  chan struct{}
+	onNew    func(ctx context.Context, rel *domain.Release)
 }
 
 func New(repos *repository.All, github *gh.Client, interval time.Duration) *Poller {
@@ -21,6 +24,18 @@ func New(repos *repository.All, github *gh.Client, interval time.Duration) *Poll
 		repos:    repos,
 		github:   github,
 		interval: interval,
+		trigger:  make(chan struct{}, 1),
+	}
+}
+
+func (p *Poller) OnNewRelease(fn func(ctx context.Context, rel *domain.Release)) {
+	p.onNew = fn
+}
+
+func (p *Poller) Trigger() {
+	select {
+	case p.trigger <- struct{}{}:
+	default:
 	}
 }
 
@@ -39,6 +54,17 @@ func (p *Poller) Start(ctx context.Context) {
 			return
 		case <-ticker.C:
 			p.poll(ctx)
+		case <-p.trigger:
+			slog.Info("poll triggered manually")
+			p.poll(ctx)
+			for {
+				select {
+				case <-p.trigger:
+				default:
+					goto done
+				}
+			}
+		done:
 		}
 	}
 }
@@ -82,8 +108,23 @@ func (p *Poller) pollOrg(ctx context.Context, org domain.Organization) {
 			continue
 		}
 
-		p.pollReleases(ctx, repo, ghRepo.FullName)
-		p.pollTags(ctx, repo, ghRepo.FullName)
+		shouldPoll, _ := p.repos.Repository.ShouldPoll(ctx, repo.ID)
+		if !shouldPoll {
+			continue
+		}
+
+		latestRelease := p.pollReleases(ctx, repo, ghRepo.FullName)
+		latestTag := p.pollTags(ctx, repo, ghRepo.FullName)
+
+		p.repos.Repository.MarkPolled(ctx, repo.ID)
+
+		latest := latestRelease
+		if latestTag.After(latest) {
+			latest = latestTag
+		}
+		if !latest.IsZero() {
+			p.repos.Repository.MarkNewActivity(ctx, repo.ID, latest)
+		}
 	}
 
 	if err := p.repos.Organization.UpdateLastPolled(ctx, org.ID); err != nil {
@@ -93,11 +134,13 @@ func (p *Poller) pollOrg(ctx context.Context, org domain.Organization) {
 	slog.Info("polled organization", "org", org.Name, "repos", len(ghRepos))
 }
 
-func (p *Poller) pollReleases(ctx context.Context, repo *domain.Repository, fullName string) {
+func (p *Poller) pollReleases(ctx context.Context, repo *domain.Repository, fullName string) time.Time {
+	var latest time.Time
+
 	releases, err := p.github.ListReleases(ctx, fullName)
 	if err != nil {
 		slog.Debug("failed to list releases", "repo", fullName, "error", err)
-		return
+		return latest
 	}
 
 	for _, rel := range releases {
@@ -113,7 +156,7 @@ func (p *Poller) pollReleases(ctx context.Context, repo *domain.Repository, full
 			avatar = rel.Author.AvatarURL
 		}
 
-		if err := p.repos.Release.Upsert(ctx, &domain.Release{
+		release := &domain.Release{
 			RepoID:       repo.ID,
 			TagName:      rel.TagName,
 			Name:         rel.Name,
@@ -123,29 +166,71 @@ func (p *Poller) pollReleases(ctx context.Context, repo *domain.Repository, full
 			Author:       author,
 			AuthorAvatar: avatar,
 			PublishedAt:  publishedAt,
-		}); err != nil {
-			slog.Error("failed to upsert release", "repo", fullName, "tag", rel.TagName, "error", err)
+			RepoName:     fullName,
+			OrgName:      strings.SplitN(fullName, "/", 2)[0],
+		}
+
+		inserted, err := p.repos.Release.InsertIfNotExists(ctx, release)
+		if err != nil {
+			slog.Error("failed to insert release", "repo", fullName, "tag", rel.TagName, "error", err)
+			continue
+		}
+
+		if inserted && p.onNew != nil {
+			p.onNew(ctx, release)
+		}
+
+		if publishedAt.After(latest) {
+			latest = publishedAt
 		}
 	}
+	return latest
 }
 
-func (p *Poller) pollTags(ctx context.Context, repo *domain.Repository, fullName string) {
+func (p *Poller) pollTags(ctx context.Context, repo *domain.Repository, fullName string) time.Time {
+	var latest time.Time
+
 	tags, err := p.github.ListTags(ctx, fullName)
 	if err != nil {
 		slog.Debug("failed to list tags", "repo", fullName, "error", err)
-		return
+		return latest
 	}
 
 	for _, tag := range tags {
-		if err := p.repos.Release.InsertIfNotExists(ctx, &domain.Release{
+		release := &domain.Release{
 			RepoID:      repo.ID,
 			TagName:     tag.Name,
 			Name:        tag.Name,
 			HTMLURL:     "https://github.com/" + fullName + "/releases/tag/" + tag.Name,
 			Type:        "tag",
 			PublishedAt: time.Now().UTC(),
-		}); err != nil {
-			// ignore
+			RepoName:    fullName,
+			OrgName:     strings.SplitN(fullName, "/", 2)[0],
+		}
+
+		inserted, err := p.repos.Release.InsertIfNotExists(ctx, release)
+		if err != nil || !inserted {
+			continue
+		}
+
+		tagDate := time.Now().UTC()
+		if tag.Commit.URL != "" {
+			if dateStr, err := p.github.GetCommitDate(ctx, tag.Commit.URL); err == nil {
+				if parsed, err := time.Parse(time.RFC3339, dateStr); err == nil {
+					tagDate = parsed
+					p.repos.Release.UpdatePublishedAt(ctx, repo.ID, tag.Name, parsed)
+				}
+			}
+		}
+
+		release.PublishedAt = tagDate
+		if p.onNew != nil {
+			p.onNew(ctx, release)
+		}
+
+		if tagDate.After(latest) {
+			latest = tagDate
 		}
 	}
+	return latest
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/shadowy-pycoder/release-watcher/internal/repository"
 	"github.com/shadowy-pycoder/release-watcher/internal/server/handler"
 	"github.com/shadowy-pycoder/release-watcher/internal/server/middleware"
+	"github.com/shadowy-pycoder/release-watcher/internal/telegram"
 )
 
 func main() {
@@ -37,12 +38,24 @@ func main() {
 
 	repos := repository.NewAll(database)
 	ghClient := github.NewClient(cfg.GithubToken)
+	p := poller.New(repos, ghClient, cfg.PollInterval)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if cfg.TelegramToken != "" {
+		bot := telegram.New(cfg.TelegramToken, repos, ghClient, p)
+		p.OnNewRelease(bot.NotifyNewRelease)
+		go bot.Start(ctx)
+	}
+
+	go p.Start(ctx)
 
 	mux := http.NewServeMux()
 
 	handler.RegisterHealth(mux)
-	handler.RegisterUser(mux, repos)
-	handler.RegisterOrganization(mux, repos)
+	handler.RegisterUser(mux, repos, p)
+	handler.RegisterOrganization(mux, repos, p)
 	handler.RegisterFeed(mux, repos)
 	handler.RegisterMute(mux, repos)
 	handler.RegisterRepos(mux, repos)
@@ -60,12 +73,6 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	p := poller.New(repos, ghClient, cfg.PollInterval)
-	go p.Start(ctx)
 
 	go func() {
 		slog.Info("server started", "port", cfg.Port)

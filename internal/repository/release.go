@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/shadowy-pycoder/release-watcher/internal/domain"
 )
@@ -28,15 +29,27 @@ func (r *ReleaseRepo) Upsert(ctx context.Context, rel *domain.Release) error {
 	return err
 }
 
-func (r *ReleaseRepo) InsertIfNotExists(ctx context.Context, rel *domain.Release) error {
-	_, err := r.db.ExecContext(ctx, `
+func (r *ReleaseRepo) InsertIfNotExists(ctx context.Context, rel *domain.Release) (bool, error) {
+	res, err := r.db.ExecContext(ctx, `
 		INSERT INTO releases (repo_id, tag_name, name, body, html_url, type, author, author_avatar, published_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(repo_id, tag_name) DO NOTHING`,
 		rel.RepoID, rel.TagName, rel.Name, rel.Body, rel.HTMLURL,
 		rel.Type, rel.Author, rel.AuthorAvatar, rel.PublishedAt)
+	if err != nil {
+		return false, err
+	}
+	rows, _ := res.RowsAffected()
+	return rows > 0, nil
+}
+
+func (r *ReleaseRepo) UpdatePublishedAt(ctx context.Context, repoID int64, tagName string, publishedAt time.Time) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE releases SET published_at = ? WHERE repo_id = ? AND tag_name = ?`,
+		publishedAt, repoID, tagName)
 	return err
 }
+
 
 func (r *ReleaseRepo) Feed(ctx context.Context, userID int64, limit, offset int) ([]domain.Release, error) {
 	rows, err := r.db.QueryContext(ctx, `

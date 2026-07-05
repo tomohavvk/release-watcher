@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
+    telegram_chat_id INTEGER UNIQUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -23,6 +24,8 @@ CREATE TABLE IF NOT EXISTS repositories (
     org_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     full_name TEXT NOT NULL UNIQUE,
+    last_new_at DATETIME,
+    polled_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -46,6 +49,13 @@ CREATE TABLE IF NOT EXISTS releases (
     published_at DATETIME NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(repo_id, tag_name)
+);
+
+CREATE TABLE IF NOT EXISTS user_repositories (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    repo_id INTEGER NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, repo_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_releases_published_at ON releases(published_at DESC);

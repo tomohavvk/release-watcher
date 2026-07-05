@@ -11,22 +11,21 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
-    const restore = async () => {
-      const stored = localStorage.getItem('rw_user')
-      if (stored) {
-        try {
-          const prev = JSON.parse(stored) as User
-          const fresh = await api.auth(prev.name)
+    const stored = localStorage.getItem('rw_user')
+    if (stored) {
+      try {
+        const prev = JSON.parse(stored) as User
+        setUser(prev)
+        api.auth(prev.name).then((fresh) => {
           const u: User = { id: fresh.id, name: fresh.name, created_at: fresh.created_at }
           setUser(u)
           localStorage.setItem('rw_user', JSON.stringify(u))
-        } catch {
-          localStorage.removeItem('rw_user')
-        }
+        }).catch(() => {})
+      } catch {
+        localStorage.removeItem('rw_user')
       }
-      setLoading(false)
     }
-    restore()
+    setLoading(false)
   }, [])
 
   const handleLogin = async (name: string) => {

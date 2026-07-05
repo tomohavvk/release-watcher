@@ -5,7 +5,7 @@ interface Props {
 }
 
 export default function LoginForm({ onLogin }: Props) {
-  const [name, setName] = useState('')
+  const [name, setName] = useState('taqtiq')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {

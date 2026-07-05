@@ -39,6 +39,14 @@ type GHTag struct {
 	} `json:"commit"`
 }
 
+type GHCommit struct {
+	Commit struct {
+		Committer struct {
+			Date string `json:"date"`
+		} `json:"committer"`
+	} `json:"commit"`
+}
+
 type GHRepo struct {
 	Name     string `json:"name"`
 	FullName string `json:"full_name"`
@@ -60,11 +68,16 @@ func (c *Client) get(ctx context.Context, url string, result any) error {
 		req.Header.Set("Authorization", "Bearer "+c.token)
 	}
 
+	slog.Debug("github request", "url", url)
+
 	resp, err := c.http.Do(req)
 	if err != nil {
+		slog.Error("github request failed", "url", url, "error", err)
 		return err
 	}
 	defer resp.Body.Close()
+
+	slog.Info("github response", "url", url, "status", resp.StatusCode)
 
 	if resp.StatusCode == http.StatusNotFound {
 		return fmt.Errorf("not found: %s", url)
@@ -118,7 +131,7 @@ func (c *Client) listUserRepos(ctx context.Context, owner string) ([]GHRepo, err
 
 func (c *Client) ListReleases(ctx context.Context, fullName string) ([]GHRelease, error) {
 	var releases []GHRelease
-	url := fmt.Sprintf("https://api.github.com/repos/%s/releases?per_page=30", fullName)
+	url := fmt.Sprintf("https://api.github.com/repos/%s/releases?per_page=1", fullName)
 	if err := c.get(ctx, url, &releases); err != nil {
 		return nil, err
 	}
@@ -127,9 +140,33 @@ func (c *Client) ListReleases(ctx context.Context, fullName string) ([]GHRelease
 
 func (c *Client) ListTags(ctx context.Context, fullName string) ([]GHTag, error) {
 	var tags []GHTag
-	url := fmt.Sprintf("https://api.github.com/repos/%s/tags?per_page=30", fullName)
+	url := fmt.Sprintf("https://api.github.com/repos/%s/tags?per_page=1", fullName)
 	if err := c.get(ctx, url, &tags); err != nil {
 		return nil, err
 	}
 	return tags, nil
+}
+
+func (c *Client) GetCommitDate(ctx context.Context, commitURL string) (string, error) {
+	var commit GHCommit
+	if err := c.get(ctx, commitURL, &commit); err != nil {
+		return "", err
+	}
+	return commit.Commit.Committer.Date, nil
+}
+
+func (c *Client) ValidateOwner(ctx context.Context, owner string) bool {
+	var result json.RawMessage
+	url := fmt.Sprintf("https://api.github.com/orgs/%s", owner)
+	if err := c.get(ctx, url, &result); err == nil {
+		return true
+	}
+	url = fmt.Sprintf("https://api.github.com/users/%s", owner)
+	return c.get(ctx, url, &result) == nil
+}
+
+func (c *Client) ValidateRepo(ctx context.Context, fullName string) bool {
+	var result json.RawMessage
+	url := fmt.Sprintf("https://api.github.com/repos/%s", fullName)
+	return c.get(ctx, url, &result) == nil
 }

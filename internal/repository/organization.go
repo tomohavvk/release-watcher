@@ -69,7 +69,8 @@ func (r *OrganizationRepo) ListAll(ctx context.Context) ([]domain.Organization, 
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT DISTINCT o.id, o.name, o.last_polled_at, o.created_at
 		FROM organizations o
-		JOIN user_organizations uo ON uo.org_id = o.id
+		WHERE EXISTS (SELECT 1 FROM user_organizations uo WHERE uo.org_id = o.id)
+		   OR EXISTS (SELECT 1 FROM user_repositories ur JOIN repositories r ON r.id = ur.repo_id WHERE r.org_id = o.id)
 		ORDER BY o.name`)
 	if err != nil {
 		return nil, err
