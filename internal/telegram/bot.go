@@ -461,6 +461,10 @@ func parseGitHubURL(text string) (owner, repo string, err error) {
 		return "", "", fmt.Errorf("empty path")
 	}
 
+	if (parts[0] == "orgs" || parts[0] == "users") && len(parts) >= 2 {
+		parts = parts[1:]
+	}
+
 	owner = parts[0]
 	if len(parts) >= 2 && parts[1] != "" {
 		repo = parts[1]
