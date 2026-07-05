@@ -1,0 +1,12 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "cd frontend && npm run build && cd .. && go build -o ./tmp/release-watcher ./cmd/server"
+  bin = "./tmp/release-watcher"
+  include_ext = ["go", "toml", "yaml", "ts", "tsx", "css"]
+  exclude_dir = ["tmp", "node_modules", "webapp"]
+  delay = 1000
+
+[misc]
+  clean_on_exit = true

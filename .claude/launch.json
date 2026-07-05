@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "release-watcher",
+      "runtimeExecutable": "./tmp/release-watcher",
+      "runtimeArgs": [],
+      "port": 8080
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+.idea
+.env
+backup/
+
+# Angular (old)
+webapp/node_modules/
+webapp/.angular/
+webapp/.package-lock.json
+webapp/dist/
+
+# React (new)
+frontend/node_modules/
+frontend/dist/
+
+# Go
+backend
+*.exe
+tmp/
+
+# Archive data cache
+data/
