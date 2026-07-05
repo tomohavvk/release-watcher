@@ -11,7 +11,7 @@ webapp/dist/
 # React (new)
 frontend/node_modules/
 frontend/dist/
-
+server
 # Go
 backend
 *.exe
