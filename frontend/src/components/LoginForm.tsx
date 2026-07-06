@@ -76,7 +76,7 @@ export default function LoginForm({ onLogin }: Props) {
               {loading ? 'Sending...' : 'Send Code'}
             </button>
             <p className="text-gray-500 text-xs text-center">
-              First, start the bot <a href="https://t.me/ReleaseWatcherBot" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">@ReleaseWatcherBot</a>
+              First, start the bot <a href="https://t.me/tomohavvk_release_watcher_bot" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">@tomohavvk_release_watcher_bot</a>
             </p>
           </form>
         ) : (

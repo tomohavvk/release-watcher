@@ -58,7 +58,7 @@ func handleAuthRequest(repos *repository.All, sender CodeSender) http.HandlerFun
 		user, err := repos.User.GetByName(r.Context(), username)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				response.Error(w, http.StatusNotFound, "Start the bot @ReleaseWatcherBot first")
+				response.Error(w, http.StatusNotFound, "Start the bot @tomohavvk_release_watcher_bot first")
 				return
 			}
 			response.Error(w, http.StatusInternalServerError, "failed to find user")
@@ -66,7 +66,7 @@ func handleAuthRequest(repos *repository.All, sender CodeSender) http.HandlerFun
 		}
 
 		if user.TelegramChatID == nil {
-			response.Error(w, http.StatusNotFound, "Start the bot @ReleaseWatcherBot first")
+			response.Error(w, http.StatusNotFound, "Start the bot @tomohavvk_release_watcher_bot first")
 			return
 		}
 
