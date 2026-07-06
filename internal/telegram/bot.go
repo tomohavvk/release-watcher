@@ -102,7 +102,7 @@ func (b *Bot) handleUpdate(ctx context.Context, u update) {
 
 	switch {
 	case text == "/start" || text == "/help":
-		b.handleStart(ctx, chatID)
+		b.handleStart(ctx, chatID, userName)
 	case text == "/list":
 		b.handleList(ctx, chatID, userName)
 	case strings.HasPrefix(text, "/remove"):
@@ -118,7 +118,11 @@ func (b *Bot) handleUpdate(ctx context.Context, u update) {
 	}
 }
 
-func (b *Bot) handleStart(ctx context.Context, chatID int64) {
+func (b *Bot) handleStart(ctx context.Context, chatID int64, userName string) {
+	if _, err := b.repos.User.GetOrCreateByTelegram(ctx, chatID, userName); err != nil {
+		slog.Error("handleStart: failed to create user", "username", userName, "error", err)
+	}
+
 	text := `<b>Release Watcher Bot</b>
 
 Слідкую за новими релізами та тегами на GitHub і повідомляю тебе.
