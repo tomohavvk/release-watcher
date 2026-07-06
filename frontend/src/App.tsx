@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import { User } from './types'
-import { api } from './hooks/useApi'
 import LoginForm from './components/LoginForm'
 import Sidebar from './components/Sidebar'
 import Feed from './components/Feed'
@@ -14,13 +13,7 @@ export default function App() {
     const stored = localStorage.getItem('rw_user')
     if (stored) {
       try {
-        const prev = JSON.parse(stored) as User
-        setUser(prev)
-        api.auth(prev.name).then((fresh) => {
-          const u: User = { id: fresh.id, name: fresh.name, created_at: fresh.created_at }
-          setUser(u)
-          localStorage.setItem('rw_user', JSON.stringify(u))
-        }).catch(() => {})
+        setUser(JSON.parse(stored) as User)
       } catch {
         localStorage.removeItem('rw_user')
       }
@@ -28,15 +21,9 @@ export default function App() {
     setLoading(false)
   }, [])
 
-  const handleLogin = async (name: string) => {
-    try {
-      const userData = await api.auth(name)
-      const u: User = { id: userData.id, name: userData.name, created_at: userData.created_at }
-      setUser(u)
-      localStorage.setItem('rw_user', JSON.stringify(u))
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Login failed')
-    }
+  const handleLogin = (u: User) => {
+    setUser(u)
+    localStorage.setItem('rw_user', JSON.stringify(u))
   }
 
   const handleLogout = () => {

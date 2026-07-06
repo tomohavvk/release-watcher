@@ -43,8 +43,9 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	var bot *telegram.Bot
 	if cfg.TelegramToken != "" {
-		bot := telegram.New(cfg.TelegramToken, repos, ghClient, p)
+		bot = telegram.New(cfg.TelegramToken, repos, ghClient, p)
 		p.OnNewRelease(bot.NotifyNewRelease)
 		go bot.Start(ctx)
 	}
@@ -54,7 +55,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	handler.RegisterHealth(mux)
-	handler.RegisterUser(mux, repos, p)
+	handler.RegisterUser(mux, repos, bot)
 	handler.RegisterOrganization(mux, repos, p)
 	handler.RegisterFeed(mux, repos)
 	handler.RegisterMute(mux, repos)

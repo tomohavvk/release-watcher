@@ -64,6 +64,11 @@ func (b *Bot) Start(ctx context.Context) {
 	}
 }
 
+func (b *Bot) SendCode(ctx context.Context, chatID int64, code string) error {
+	text := fmt.Sprintf("🔐 Код для входу: <code>%s</code>\n\nДійсний 5 хвилин.", code)
+	return b.sendMessage(ctx, chatID, text, "HTML")
+}
+
 func (b *Bot) NotifyNewRelease(ctx context.Context, rel *domain.Release) {
 	chatIDs, err := b.repos.User.GetTelegramRecipientsForRepo(ctx, rel.RepoID, rel.PublishedAt)
 	if err != nil {

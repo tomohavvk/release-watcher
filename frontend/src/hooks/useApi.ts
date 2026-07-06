@@ -13,10 +13,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  auth: (name: string) =>
-    request<{ id: number; name: string; created_at: string }>('/auth', {
+  requestCode: (username: string) =>
+    request<{ status: string }>('/auth/request', {
       method: 'POST',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ username }),
+    }),
+
+  verifyCode: (username: string, code: string) =>
+    request<{ id: number; name: string; created_at: string }>('/auth/verify', {
+      method: 'POST',
+      body: JSON.stringify({ username, code }),
     }),
 
   getUser: (name: string) =>
