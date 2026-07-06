@@ -8,12 +8,13 @@ import (
 )
 
 type Config struct {
-	Port          string
-	DBPath        string
-	GithubToken   string
-	TelegramToken string
-	PollInterval  time.Duration
-	LogLevel      string
+	Port             string
+	DBPath           string
+	GithubToken      string
+	TelegramToken    string
+	WebhookSecret    string
+	PollInterval     time.Duration
+	LogLevel         string
 }
 
 func Load() *Config {
@@ -22,6 +23,7 @@ func Load() *Config {
 		DBPath:        getEnv("DB_PATH", "./data/release-watcher.db"),
 		GithubToken:   getEnv("GITHUB_TOKEN", ""),
 		TelegramToken: getEnv("TELEGRAM_BOT_TOKEN", ""),
+		WebhookSecret: getEnv("GITHUB_WEBHOOK_SECRET", ""),
 		PollInterval:  getDurationEnv("POLL_INTERVAL_SECONDS", 300),
 		LogLevel:      getEnv("LOG_LEVEL", "info"),
 	}

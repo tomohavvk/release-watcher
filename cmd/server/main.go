@@ -59,6 +59,7 @@ func main() {
 	handler.RegisterFeed(mux, repos)
 	handler.RegisterMute(mux, repos)
 	handler.RegisterRepos(mux, repos)
+	handler.RegisterWebhook(mux, cfg.WebhookSecret)
 	registerStaticFiles(mux)
 
 	var h http.Handler = mux
