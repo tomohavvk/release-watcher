@@ -65,7 +65,7 @@ func (b *Bot) Start(ctx context.Context) {
 }
 
 func (b *Bot) NotifyNewRelease(ctx context.Context, rel *domain.Release) {
-	chatIDs, err := b.repos.User.GetTelegramRecipientsForRepo(ctx, rel.RepoID)
+	chatIDs, err := b.repos.User.GetTelegramRecipientsForRepo(ctx, rel.RepoID, rel.PublishedAt)
 	if err != nil {
 		slog.Error("telegram: failed to get recipients", "error", err)
 		return

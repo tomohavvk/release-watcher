@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/shadowy-pycoder/release-watcher/internal/domain"
 )
@@ -104,7 +105,7 @@ func (r *UserRepo) GetByTelegramChatID(ctx context.Context, chatID int64) (*doma
 	return &u, nil
 }
 
-func (r *UserRepo) GetTelegramRecipientsForRepo(ctx context.Context, repoID int64) ([]int64, error) {
+func (r *UserRepo) GetTelegramRecipientsForRepo(ctx context.Context, repoID int64, publishedAt time.Time) ([]int64, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT DISTINCT u.telegram_chat_id
 		FROM users u
@@ -113,17 +114,17 @@ func (r *UserRepo) GetTelegramRecipientsForRepo(ctx context.Context, repoID int6
 			EXISTS (
 				SELECT 1 FROM user_organizations uo
 				JOIN repositories r ON r.org_id = uo.org_id
-				WHERE uo.user_id = u.id AND r.id = ?
+				WHERE uo.user_id = u.id AND r.id = ? AND uo.created_at <= ?
 			)
 			OR EXISTS (
 				SELECT 1 FROM user_repositories ur
-				WHERE ur.user_id = u.id AND ur.repo_id = ?
+				WHERE ur.user_id = u.id AND ur.repo_id = ? AND ur.created_at <= ?
 			)
 		)
 		AND NOT EXISTS (
 			SELECT 1 FROM muted_repos mr
 			WHERE mr.user_id = u.id AND mr.repo_id = ?
-		)`, repoID, repoID, repoID)
+		)`, repoID, publishedAt, repoID, publishedAt, repoID)
 	if err != nil {
 		return nil, err
 	}
