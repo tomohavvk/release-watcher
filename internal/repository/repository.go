@@ -161,7 +161,7 @@ func (r *RepositoryRepo) ShouldPoll(ctx context.Context, repoID int64) (bool, er
 	sincePolled := time.Since(polledAt.Time)
 
 	if !lastNewAt.Valid {
-		return sincePolled > 1*time.Hour, nil
+		return true, nil
 	}
 
 	sinceNew := time.Since(lastNewAt.Time)
