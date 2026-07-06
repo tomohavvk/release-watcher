@@ -108,23 +108,8 @@ func (p *Poller) pollOrg(ctx context.Context, org domain.Organization) {
 			continue
 		}
 
-		shouldPoll, _ := p.repos.Repository.ShouldPoll(ctx, repo.ID)
-		if !shouldPoll {
-			continue
-		}
-
-		latestRelease := p.pollReleases(ctx, repo, ghRepo.FullName)
-		latestTag := p.pollTags(ctx, repo, ghRepo.FullName)
-
-		p.repos.Repository.MarkPolled(ctx, repo.ID)
-
-		latest := latestRelease
-		if latestTag.After(latest) {
-			latest = latestTag
-		}
-		if !latest.IsZero() {
-			p.repos.Repository.MarkNewActivity(ctx, repo.ID, latest)
-		}
+		p.pollReleases(ctx, repo, ghRepo.FullName)
+		p.pollTags(ctx, repo, ghRepo.FullName)
 	}
 
 	if err := p.repos.Organization.UpdateLastPolled(ctx, org.ID); err != nil {
