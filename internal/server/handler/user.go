@@ -58,7 +58,7 @@ func handleAuthRequest(repos *repository.All, sender CodeSender) http.HandlerFun
 		user, err := repos.User.GetByName(r.Context(), username)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				response.Error(w, http.StatusNotFound, "Спершу напиши /start боту @ReleaseWatcherBot")
+				response.Error(w, http.StatusNotFound, "Start the bot @ReleaseWatcherBot first")
 				return
 			}
 			response.Error(w, http.StatusInternalServerError, "failed to find user")
@@ -66,7 +66,7 @@ func handleAuthRequest(repos *repository.All, sender CodeSender) http.HandlerFun
 		}
 
 		if user.TelegramChatID == nil {
-			response.Error(w, http.StatusNotFound, "Спершу напиши /start боту @ReleaseWatcherBot")
+			response.Error(w, http.StatusNotFound, "Start the bot @ReleaseWatcherBot first")
 			return
 		}
 
@@ -113,7 +113,7 @@ func handleAuthVerify(repos *repository.All) http.HandlerFunc {
 		codesMu.Unlock()
 
 		if !ok || time.Now().After(stored.expiresAt) || stored.code != code {
-			response.Error(w, http.StatusUnauthorized, "Невірний або прострочений код")
+			response.Error(w, http.StatusUnauthorized, "Invalid or expired code")
 			return
 		}
 
@@ -146,5 +146,6 @@ func handleGetUser(repos *repository.All) http.HandlerFunc {
 func generateCode() string {
 	b := make([]byte, 3)
 	rand.Read(b)
-	return fmt.Sprintf("%06d", int(b[0])<<16|int(b[1])<<8|int(b[2])%1000000)
+	n := (int(b[0])<<16 | int(b[1])<<8 | int(b[2])) % 1000000
+	return fmt.Sprintf("%06d", n)
 }
